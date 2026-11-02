@@ -87,6 +87,9 @@ public:
   void DispatchAppEvent(AppEvent);
   void EditIOSettings();
   void DispatchLoop();
+  virtual uint32_t screensaver_timeout_override_ms() const { return 0; }
+  virtual uint32_t screensaver_redraw_interval_ms() const { return 0; }
+  virtual bool left_long_press_opens_screensaver() const { return true; }
 
   // Main implementation interface for derived classes
   virtual void Init() = 0;

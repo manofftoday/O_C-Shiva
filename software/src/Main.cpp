@@ -453,7 +453,10 @@ void FASTRUN loop() {
       }
     }
 
-    if (ui.ticks() - last_redraw_time > REDRAW_TIMEOUT_MS)
+    const uint32_t redraw_interval = (ui_mode == UI_MODE_SCREENSAVER)
+      ? app_switcher.current_app()->screensaver_redraw_interval_ms()
+      : 0;
+    if (ui.ticks() - last_redraw_time > (redraw_interval ? redraw_interval : REDRAW_TIMEOUT_MS))
       MENU_REDRAW = 1;
 
 #ifdef MTP_INTERFACE

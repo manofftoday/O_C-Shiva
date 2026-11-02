@@ -58,8 +58,10 @@ static uint8_t SH1106_data_start_seq[] = {
 // u8g_dev_ssd1306_128x64_data_start
   0x10, /* set upper 4 bit of the col adr to 0 */
   0x02, /* set lower 4 bit of the col adr to 0 */
-  0x00  /* 0xb0 | page */
+  0x00, /* 0xb0 | page */
+  0x081, 0x0cf /* live contrast command and value */
 };
+static volatile uint8_t SH1106_contrast = 0x0cf;
 
 static uint8_t SH1106_init_seq[] = {
 // u8g_dev_ssd1306_128x64_adafruit3_init_seq
@@ -217,6 +219,7 @@ void SH1106_128x64_Driver::Clear() {
   memset(empty_page, 0, sizeof(kPageSize));
 
   SH1106_data_start_seq[2] = 0xb0 | 0;
+  SH1106_data_start_seq[4] = SH1106_contrast;
   digitalWriteFast(OLED_DC, LOW);
   digitalWriteFast(OLED_CS, OLED_CS_ACTIVE);
   SPI_send(SH1106_data_start_seq, sizeof(SH1106_data_start_seq));
@@ -237,6 +240,7 @@ void SH1106_128x64_Driver::Clear() {
 /*static*/
 bool SH1106_128x64_Driver::SendPage(uint_fast8_t index, const uint8_t *data) {
   SH1106_data_start_seq[2] = 0xb0 | index;
+  SH1106_data_start_seq[4] = SH1106_contrast;
 
   digitalWriteFast(OLED_DC, LOW); // U8G_ESC_ADR(0),           /* instruction mode */
   digitalWriteFast(OLED_CS, OLED_CS_ACTIVE); // U8G_ESC_CS(1),             /* enable chip */
@@ -264,6 +268,7 @@ bool SH1106_128x64_Driver::SendPage(uint_fast8_t index, const uint8_t *data) {
   if (sendpage_state) return false; // don't interrupt others
                                     //
   SH1106_data_start_seq[2] = 0xb0 | index;
+  SH1106_data_start_seq[4] = SH1106_contrast;
   sendpage_state = 1;
   sendpage_src = (const uint32_t *)data; // frame buffer is 32 bit aligned
   sendpage_count = kPageSize >> 2; // number of 32 bit words to write into FIFO
@@ -304,6 +309,15 @@ static void spi_sendpage_isr() {
     return; // FIFO loaded with 3 byte command
   }
   if (sendpage_state == 2) {
+    // send the live contrast command before starting the page data
+    lpspi->TCR = (lpspi->TCR & 0xF8000000) | LPSPI_TCR_FRAMESZ(15)
+      | LPSPI_TCR_PCS(3) | LPSPI_TCR_RXMSK;
+    lpspi->TDR = (0x081 << 8) | SH1106_contrast;
+    sendpage_state = 3;
+    lpspi->IER = LPSPI_IER_TCIE;
+    return;
+  }
+  if (sendpage_state == 3) {
     // begin data phase
     digitalWriteFast(OLED_DC, HIGH);
     lpspi->CR |= LPSPI_CR_RRF | LPSPI_CR_RTF; // clear FIFO
@@ -311,10 +325,10 @@ static void spi_sendpage_isr() {
     const size_t nbits = SH1106_128x64_Driver::kPageSize * 8;
     lpspi->TCR = (lpspi->TCR & 0xF8000000) | LPSPI_TCR_FRAMESZ(nbits-1)
       | LPSPI_TCR_PCS(3) | LPSPI_TCR_RXMSK | LPSPI_TCR_BYSW;
-    sendpage_state = 3;
+    sendpage_state = 4;
     return;
   }
-  if (sendpage_state == 3) {
+  if (sendpage_state == 4) {
     // feed display data into the FIFO
     if (!(status & LPSPI_SR_TDF)) return;
     const int fifo_space = 16 - (lpspi->FSR & 0x1F);
@@ -334,7 +348,7 @@ static void spi_sendpage_isr() {
         asm volatile ("dsb":::"memory");
       }
       sendpage_count = 0;
-      sendpage_state = 4;
+      sendpage_state = 5;
     }
     return;
   } else {
@@ -422,6 +436,7 @@ void SH1106_128x64_Driver::SetFlipMode(bool flip180) {
 }
 /*static*/
 void SH1106_128x64_Driver::SetContrast(uint8_t contrast) {
+  SH1106_contrast = contrast;
   SH1106_init_seq[CONTRAST_VALUE] = contrast;
 }
 

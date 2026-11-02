@@ -38,6 +38,7 @@ Not everything can fit at once on Teensy 3.2 hardware, but you can use the [defa
  * [Viznutcracker, sweet!](Viznutcracker-sweet) - Quad Bytebeat generator
  * [Backup / Restore](Backup-and-Restore) - Transfer app and calibration data as SysEx
  * [CV Recorder 4](CV-Recorder-4) - Four-channel clocked CV recorder
+ * [Spanda](Spanda) - Joystick-driven nonlinear, coupled CV modulation engine
  * [Setup / About](Setup-About) - Check your version, change encoder directions, adjust display/DAC/ADC, screen off time
 
 

@@ -180,8 +180,9 @@ UiMode Ui::DispatchEvents(const RuntimeSlot &appslot) {
     }
   }
 
-  // Turning screensaver seconds into screen-blanking minutes with the * 60 (chysn 9/2/2018)
-  if (idle_time() > (screensaver_timeout() * 60) && !preempt_screensaver_)
+  const uint32_t app_timeout = app->screensaver_timeout_override_ms();
+  const uint32_t idle_limit = app_timeout ? app_timeout : screensaver_timeout() * 60;
+  if (idle_time() > idle_limit && !preempt_screensaver_)
     screensaver_ = true;
 
   if (screensaver_) {

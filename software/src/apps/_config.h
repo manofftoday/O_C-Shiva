@@ -35,6 +35,9 @@ namespace menu = OC::menu;
 #ifdef ENABLE_APP_CVRECORDER
 #include "CVRecorder.h"
 #endif
+#ifdef ENABLE_APP_SPANDA
+#include "Spanda.h"
+#endif
 // #include "Passencore.h"
 #include "CaptainMIDI.h"
 #include "TheDarkestTimeline.h"
@@ -133,6 +136,9 @@ static AppContainer<void // this space intentionally left blank
 #endif
 #ifdef ENABLE_APP_CVRECORDER
   , AppCVRecorder
+#endif
+#ifdef ENABLE_APP_SPANDA
+  , AppSpanda
 #endif
 #ifdef ENABLE_APP_PONG
   , AppPong
